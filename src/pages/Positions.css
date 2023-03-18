@@ -1,0 +1,50 @@
+@import url('https://fonts.googleapis.com/css2?family=Roboto:wght@400;500&display=swap');
+
+.table thead {
+  background-color: #1a3d6d;
+  color: #ffffff;
+}
+
+.table tbody tr {
+  background-color: #e9f0f8;
+  color: #333333;
+}
+
+.table tbody tr:nth-child(even) {
+  background-color: #d0dfe9;
+  color: #333333;
+}
+
+.table tbody tr:hover {
+  background-color: #c4d4e5;
+  color: #333333;
+}
+
+.custom-table thead {
+  background-color: #1a3d6d;
+  color: #ffffff;
+}
+
+.custom-table tbody tr {
+  background-color: #e9f0f8;
+  color: #333333;
+}
+
+.custom-table tbody tr:nth-child(even) {
+  background-color: #d0dfe9;
+  color: #333333;
+}
+
+.custom-table tbody tr:hover {
+  background-color: #c4d4e5;
+  color: #333333;
+}
+
+.open {
+  color: #28a745;
+}
+
+.closed {
+  color: #dc3545;
+}
+

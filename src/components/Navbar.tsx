@@ -19,6 +19,9 @@ const Navbar: React.FC = () => {
             <Nav.Link as={Link} to="/positions">
               Positions
             </Nav.Link>
+            <Nav.Link as={Link} to="/open-positions">
+              Open Positions
+            </Nav.Link>
           </Nav>
         </BootstrapNavbar.Collapse>
       </Container>

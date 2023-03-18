@@ -1,14 +1,385 @@
-import React from 'react';
+import React, { useState, useEffect, useRef } from 'react';
+import { Container, Table, Button, Modal, Form } from 'react-bootstrap';
+import { useTable, useSortBy, useFilters } from "react-table";
+import { Alert } from 'react-bootstrap';
+import { Position } from '../../models/Position';
+import './Positions.css';
+import { ToastContainer, toast } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 
 const Positions: React.FC = () => {
-  // Add your logic to fetch and display the positions
+  const [buyOrders, setBuyOrders] = useState([]);
+  const [showModal, setShowModal] = useState(false);
+  const [selectedOrder, setSelectedOrder] = useState<Position | null>(null);
+  const sellPriceRef = useRef<any>();
+  const sellDateRef = useRef<any>();
+  const sellTagRef = useRef<any>();
+  const sellNoteRef = useRef<any>();
+  const [showAlert, setShowAlert] = useState(false);
+  const [showModifyModal, setShowModifyModal] = useState(false);
+  const modifyFormRef = useRef<any>();
 
-  return (
-    <div>
-      <h1>Positions</h1>
-      {/* Add your code to display the positions here */}
-      <p>Position data will be displayed here.</p>
-    </div>
+  useEffect(() => {
+    fetchBuyOrders();
+  }, []);
+
+  const fetchBuyOrders = async () => {
+    const response = await fetch('http://localhost:3001/positions');
+    const data = await response.json();
+    setBuyOrders(data);
+  };
+
+  const handleCloseModal = () => setShowModal(false);
+  const handleShowModal = (order) => {
+    if (order.status === 'Closed') {
+      toast.warn('This position is already closed.');
+    } else {
+      setSelectedOrder(order);
+      setShowModal(true);
+    }
+  };
+
+  const handleShowModifyModal = (order) => {
+    setSelectedOrder(order);
+    setShowModifyModal(true);
+  };
+  
+  const handleCloseModifyModal = () => setShowModifyModal(false);
+
+  const handleSaveChanges = async () => {
+    // You should validate the form data before sending it to the backend
+    const sellPrice = parseFloat(sellPriceRef?.current?.value || "0");
+    const sellDate = sellDateRef?.current?.value;
+    const sellTag = sellTagRef?.current?.value;
+    const sellNote = sellNoteRef?.current?.value;
+  
+    if (selectedOrder) {
+      const response = await fetch(`http://localhost:3001/positions/${selectedOrder._id}/close`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          sellPrice,
+          sellDate,
+          sellTag,
+          sellNote,
+        }),
+      });
+  
+      if (response.ok) {
+        const data = await response.json();
+        console.log('Position closed:', data);
+        toast.success('Position closed successfully!');
+        setSelectedOrder(null);
+        handleCloseModal();
+        // Refresh the positions list
+        fetchBuyOrders();
+      } else {
+        console.error('Error closing position');
+        toast.error('Error closing position');
+      }
+    } else {
+      console.error('No position selected');
+    }
+  };
+
+  const handleModifyChanges = async () => {
+    // You should validate the form data before sending it to the backend
+    const formData = new FormData(modifyFormRef.current);
+  
+    if (selectedOrder) {
+      const response = await fetch(`http://localhost:3001/positions/${selectedOrder._id}/modify`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(Object.fromEntries(formData)),
+      });
+  
+      if (response.ok) {
+        const data = await response.json();
+        console.log('Position modified:', data);
+        toast.success('Position modified successfully!');
+        setSelectedOrder(null);
+        handleCloseModifyModal();
+        // Refresh the positions list
+        fetchBuyOrders();
+      } else {
+        console.error('Error modifying position');
+        toast.error('Error modifying position');
+      }
+    } else {
+      console.error('No position selected');
+    }
+  };  
+  
+  const data = React.useMemo(() => buyOrders, [buyOrders]);
+
+  const DefaultColumnFilter = ({
+    column: { filterValue, setFilter },
+  }) => {
+    return (
+      <input
+        value={filterValue || ""}
+        onChange={(e) => {
+          setFilter(e.target.value || undefined);
+        }}
+        placeholder={``}
+        className="form-control"
+        style={{ fontSize: '12px', marginTop: '8px' }}
+      />
+    );
+  };  
+
+  const columns = React.useMemo(
+  () => [
+    {
+      Header: 'Symbol',
+      accessor: 'stockSymbol',
+    },
+    {
+      Header: 'Buy Price',
+      accessor: 'buyPrice',
+    },
+    {
+      Header: 'Shares',
+      accessor: 'shares',
+    },
+    {
+      Header: 'Total Cost',
+      accessor: 'buyCost',
+    },
+    {
+      Header: "Buy Date",
+      accessor: "buyDate",
+      Cell: ({ value }) => new Date(value).toLocaleDateString(),
+    },    
+    {
+      Header: 'Tags',
+      accessor: 'buyTag',
+    },
+    {
+      Header: 'Sell Price',
+      accessor: 'sellPrice',
+      Cell: ({ value }) => (value || '-'),
+    },
+    {
+      Header: 'Sell Date',
+      accessor: 'sellDate',
+      Cell: ({ value }) => (value ? new Date(value).toLocaleDateString() : '-'),
+    },
+    {
+      Header: 'Sell Cost',
+      accessor: 'sellCost',
+      Cell: ({ value }) => (value || '-'),
+    },
+    {
+      Header: 'Sell Tag',
+      accessor: 'sellTag',
+    },
+    {
+      Header: 'Action',
+      accessor: '_id',
+      Cell: ({ row }) => (
+        <>
+          <Button
+            variant="warning"
+            onClick={() => handleShowModal(row.original)}
+          >
+            Close Position
+          </Button>{" "}
+          <Button
+            variant="info"
+            onClick={() => handleShowModifyModal(row.original)}
+          >
+            Modify
+          </Button>
+        </>
+      ),
+    },    
+    {
+      Header: "Status",
+      accessor: "status",
+      Cell: ({ value }) => <span className={value === "Open" ? "open" : "closed"}>{value}</span>,
+    },    
+  ],
+  []
+);
+
+const {
+  getTableProps,
+  getTableBodyProps,
+  headerGroups,
+  rows,
+  prepareRow,
+  state,
+  setFilter,
+} = useTable(
+  { columns, data, defaultColumn: { Filter: DefaultColumnFilter } },
+  useFilters,
+  useSortBy
+);
+
+return (
+  <Container className="app-container">
+    <h1>Positions</h1>
+      <Table {...getTableProps()} striped bordered hover responsive className="text-center table">
+        <thead>
+          {headerGroups.map((headerGroup) => (
+            <tr {...headerGroup.getHeaderGroupProps()}>
+              {headerGroup.headers.map((column) => (
+                <th
+                {...column.getHeaderProps({
+                  onClick: (e) => {
+                    if (e.target.tagName !== "INPUT") {
+                      column.toggleSortBy();
+                    }
+                  },
+                })}
+              >
+                {column.render("Header")}
+                <div>{column.canFilter ? column.render("Filter") : null}</div>
+              </th>              
+              ))}
+            </tr>
+          ))}
+        </thead>
+        <tbody {...getTableBodyProps()}>
+          {rows.map(row => {
+            prepareRow(row);
+            return (
+              <tr {...row.getRowProps()}>
+                {row.cells.map(cell => {
+                  return <td {...cell.getCellProps()}>{cell.render('Cell')}</td>;
+                })}
+              </tr>
+            );
+          })}
+        </tbody>
+      </Table>
+      <Modal show={showModal} onHide={handleCloseModal}>
+        <Modal.Header closeButton>
+          <Modal.Title>Close Position</Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
+          <Form>
+            <Form.Group controlId="sellPrice">
+              <Form.Label>Sell Price</Form.Label>
+              <Form.Control type="number" step="0.01" ref={sellPriceRef} />
+            </Form.Group>
+            <Form.Group controlId="sellDate">
+              <Form.Label>Sell Date</Form.Label>
+              <Form.Control type="date" ref={sellDateRef} />
+            </Form.Group>
+            <Form.Group controlId="sellTag">
+              <Form.Label>Sell Tag</Form.Label>
+              <Form.Control as="select" ref={sellTagRef}>
+                <option value="">Choose...</option>
+                <option value="tag1">Tag 1</option>
+                <option value="tag2">Tag 2</option>
+                <option value="tag3">Tag 3</option>
+              </Form.Control>
+            </Form.Group>
+            <Form.Group controlId="sellNote">
+              <Form.Label>Sell Note</Form.Label>
+              <Form.Control type="text" placeholder="Enter a custom note" ref={sellNoteRef} />
+            </Form.Group>
+          </Form>
+        </Modal.Body>
+        <Modal.Footer>
+          <Button variant="secondary" onClick={handleCloseModal}>
+            Close
+          </Button>
+          <Button variant="primary" onClick={handleSaveChanges}>
+            Save Changes
+          </Button>
+        </Modal.Footer>
+      </Modal>
+      <Modal show={showModifyModal} onHide={handleCloseModifyModal}>
+        <Modal.Header closeButton>
+          <Modal.Title>Modify Position</Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
+          <Form ref={modifyFormRef}>
+            <Form.Group controlId="shares">
+              <Form.Label>Shares</Form.Label>
+              <Form.Control
+                type="number"
+                defaultValue={selectedOrder?.shares || ""}
+                name="shares"
+              />
+            </Form.Group>
+            <Form.Group controlId="buyPrice">
+              <Form.Label>Buy Price</Form.Label>
+              <Form.Control
+                type="number"
+                step="0.01"
+                defaultValue={selectedOrder?.buyPrice || ""}
+                name="buyPrice"
+              />
+            </Form.Group>
+
+            <Form.Group controlId="buyDate">
+              <Form.Label>Buy Date</Form.Label>
+              <Form.Control
+                type="date"
+                defaultValue={selectedOrder?.buyDate ? new Date(selectedOrder.buyDate).toISOString().split("T")[0] : ""}
+                name="buyDate"
+              />
+            </Form.Group>
+
+            <Form.Group controlId="buyTag">
+              <Form.Label>Buy Tag</Form.Label>
+              <Form.Control as="select" defaultValue={selectedOrder?.buyTag || ""} name="buyTag">
+                <option value="">Choose...</option>
+                <option value="tag1">Tag 1</option>
+                <option value="tag2">Tag 2</option>
+                <option value="tag3">Tag 3</option>
+              </Form.Control>
+            </Form.Group>
+
+            <Form.Group controlId="sellPrice">
+              <Form.Label>Sell Price</Form.Label>
+              <Form.Control
+                type="number"
+                step="0.01"
+                defaultValue={selectedOrder?.sellPrice || ""}
+                name="sellPrice"
+              />
+            </Form.Group>
+
+            <Form.Group controlId="sellDate">
+              <Form.Label>Sell Date</Form.Label>
+              <Form.Control
+                type="date"
+                defaultValue={selectedOrder?.sellDate ? new Date(selectedOrder.sellDate).toISOString().split("T")[0] : ""}
+                name="sellDate"
+              />
+            </Form.Group>
+
+            <Form.Group controlId="sellTag">
+              <Form.Label>Sell Tag</Form.Label>
+              <Form.Control as="select" defaultValue={selectedOrder?.sellTag || ""} name="sellTag">
+                <option value="">Choose...</option>
+                <option value="tag1">Tag 1</option>
+                <option value="tag2">Tag 2</option>
+                <option value="tag3">Tag 3</option>
+              </Form.Control>
+            </Form.Group>
+          </Form>
+        </Modal.Body>
+        <Modal.Footer>
+          <Button variant="secondary" onClick={handleCloseModifyModal}>
+            Close
+          </Button>
+          <Button variant="primary" onClick={handleModifyChanges}>
+            Save Changes
+          </Button>
+        </Modal.Footer>
+      </Modal>
+      <ToastContainer />
+    </Container>
   );
 };
 
