@@ -23,6 +23,13 @@ const Navbar: React.FC = () => {
               Open Positions
             </Nav.Link>
           </Nav>
+          <Nav>
+            <div className="nav-item">
+              <Link to="/settings" className="nav-link">
+                <i className="fa fa-cog"></i>
+              </Link>
+            </div>
+          </Nav>
         </BootstrapNavbar.Collapse>
       </Container>
     </BootstrapNavbar>

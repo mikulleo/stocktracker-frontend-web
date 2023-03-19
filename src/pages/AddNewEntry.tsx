@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Container, Form, Button, Row, Col } from 'react-bootstrap';
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
@@ -25,10 +25,19 @@ const AddNewEntry: React.FC = () => {
     buyTag: '',
     buyNote: '',
   });
+  const [currentFullPositionSize, setCurrentFullPositionSize] = useState<number>(0);
+  
   const handleChange = (event: React.ChangeEvent<any>) => {
     const { name, value } = event.target;
     setFormData({ ...formData, [name]: value } as Pick<FormData, keyof FormData>);
   };
+
+  useEffect(() => {
+    // Fetch the latest full position size from the backend
+    fetch('http://localhost:3001/api/full-position-size')
+    .then((response) => response.json())
+    .then((data) => setCurrentFullPositionSize(data.current_full_position_size));
+  }, []);
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -46,6 +55,7 @@ const AddNewEntry: React.FC = () => {
         stopLoss: formData.stopLoss,
         buyTag: formData.buyTag,
         buyNote: formData.buyNote,
+        fullPositionSize: currentFullPositionSize,
       }),
     });
 
@@ -162,8 +172,19 @@ const AddNewEntry: React.FC = () => {
             </Form.Group>
           </Col>
           <Col>
+            <Form.Group controlId="fullPositionSize">
+              <Form.Label>Full Pos Size</Form.Label>
+              <Form.Control
+                type="number"
+                readOnly
+                name="fullPositionSize"
+                value={currentFullPositionSize}
+              />
+            </Form.Group>
+          </Col>
+          <Col>
             <Form.Group className="d-flex align-items-end">
-              <Button variant="primary" type="submit">
+              <Button className="btn btn-primary btn-add-buy" variant="primary" type="submit">
                 Add Buy
               </Button>
               </Form.Group>

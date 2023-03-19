@@ -3,9 +3,13 @@ import { Container, Table, Button, Modal, Form } from 'react-bootstrap';
 import { useTable, useSortBy, useFilters } from "react-table";
 import { Alert } from 'react-bootstrap';
 import { Position } from '../../models/Position';
+import '../App.css';
 import './Positions.css';
+import '../index.css';
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
+
+const MAX_DIGITS = 2;
 
 const Positions: React.FC = () => {
   const [buyOrders, setBuyOrders] = useState([]);
@@ -23,9 +27,18 @@ const Positions: React.FC = () => {
     fetchBuyOrders();
   }, []);
 
+  const normalizedGainLossPercentage = (buyCost, fullPositionSize, gainLossPercentage) => {
+    if (fullPositionSize !== null && fullPositionSize !== 0) {
+      return (buyCost / fullPositionSize) * gainLossPercentage;
+    }
+    return null;
+  };
+  
+
   const fetchBuyOrders = async () => {
     const response = await fetch('http://localhost:3001/positions');
     const data = await response.json();
+
     setBuyOrders(data);
   };
 
@@ -140,6 +153,19 @@ const Positions: React.FC = () => {
       accessor: 'stockSymbol',
     },
     {
+      Header: "Normalized Gain/Loss %",
+      accessor: "normalizedGainLossPercentage",
+      Cell: ({ row }) => {
+        const { buyCost, fullPositionSize, gainLossPercentage } = row.original;
+        const percentage = normalizedGainLossPercentage(buyCost, fullPositionSize, gainLossPercentage);
+        if (percentage !== null) {
+          return `${percentage.toFixed(2)}%`;
+        } else {
+          return '-';
+        }
+      },
+    },
+    {
       Header: 'Buy Price',
       accessor: 'buyPrice',
     },
@@ -150,6 +176,7 @@ const Positions: React.FC = () => {
     {
       Header: 'Total Cost',
       accessor: 'buyCost',
+      Cell: ({ value }) => (value ? value.toFixed(MAX_DIGITS) : '-'),
     },
     {
       Header: "Buy Date",
@@ -183,12 +210,12 @@ const Positions: React.FC = () => {
       Header: 'Action',
       accessor: '_id',
       Cell: ({ row }) => (
-        <>
+        <td className="action-buttons">
           <Button
             variant="warning"
             onClick={() => handleShowModal(row.original)}
           >
-            Close Position
+            Close
           </Button>{" "}
           <Button
             variant="info"
@@ -196,7 +223,7 @@ const Positions: React.FC = () => {
           >
             Modify
           </Button>
-        </>
+        </td>
       ),
     },    
     {

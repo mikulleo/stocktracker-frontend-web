@@ -13,16 +13,6 @@ const OpenPositions: React.FC = () => {
     fetchOpenPositions();
   }, []);
   
-  /*const fetchOpenPositions = async (updatePrices = false) => {
-    const response = await fetch(`http://localhost:3001/positions/open?updatePrices=${updatePrices}`);
-    const data = await response.json();
-    if (data.positions) {
-      setOpenPositions(data.positions);
-    } else {
-      setOpenPositions(data);
-    }
-  };*/
-
   const fetchOpenPositions = async (updatePrices = false) => {
     const response = await fetch(`http://localhost:3001/positions/open?updatePrices=${updatePrices}`);
     const data = await response.json();
@@ -35,6 +25,13 @@ const OpenPositions: React.FC = () => {
     const updatedPositions = await fetchOpenPositions(true);
     setOpenPositions(updatedPositions);
   };  
+
+  const normalizedGainLossPercentage = (buyCost, fullPositionSize, gainLossPercentage) => {
+    if (fullPositionSize !== null && fullPositionSize !== 0) {
+      return (buyCost / fullPositionSize) * gainLossPercentage;
+    }
+    return null;
+  };
 
   const data = React.useMemo(() => openPositions, [openPositions]);
 
@@ -76,6 +73,7 @@ const OpenPositions: React.FC = () => {
       {
         Header: 'Total Cost',
         accessor: 'buyCost',
+        Cell: ({ value }) => (value ? value.toFixed(MAX_DIGITS) : '-'),
       },
       {
         Header: 'Current Price',
@@ -97,6 +95,15 @@ const OpenPositions: React.FC = () => {
       {
         Header: 'Notes',
         accessor: 'buyNote',
+        Cell: ({ value }) => (
+          value ? (
+            <button className="btn btn-primary btn-sm" onClick={() => alert(value)}>
+              View Note
+            </button>
+          ) : (
+            "No Note"
+          )
+        ),
       },
       {
         Header: 'Stop Loss Percentage',
@@ -129,6 +136,19 @@ const OpenPositions: React.FC = () => {
         accessor: 'gainLossPercentage',
         Cell: ({ value }) => {
           return `${Number(value).toFixed(MAX_DIGITS)}%`;
+        },
+      },
+      {
+        Header: "Normalized Gain/Loss %",
+        accessor: "normalizedGainLossPercentage",
+        Cell: ({ row }) => {
+          const { buyCost, fullPositionSize, gainLossPercentage } = row.original;
+          const percentage = normalizedGainLossPercentage(buyCost, fullPositionSize, gainLossPercentage);
+          if (percentage !== null) {
+            return `${percentage.toFixed(2)}%`;
+          } else {
+            return '-';
+          }
         },
       },
     ],
