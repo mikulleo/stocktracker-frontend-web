@@ -89,6 +89,7 @@ const Positions: React.FC = () => {
     const formData = new FormData(modifyFormRef.current);
   
     if (selectedOrder) {
+  
       const response = await fetch(`http://localhost:3001/positions/${selectedOrder._id}/modify`, {
         method: 'PATCH',
         headers: {
@@ -367,7 +368,17 @@ return (
                 <option value="tag3">Tag 3</option>
               </Form.Control>
             </Form.Group>
+            <Form.Group controlId="adjustedStopLoss">
+              <Form.Label>Adjusted Stop Loss</Form.Label>
+              <Form.Control
+                type="number"
+                step="0.01"
+                defaultValue={selectedOrder?.adjustedStopLoss || ""}
+                name="adjustedStopLoss"
+              />
+            </Form.Group>
           </Form>
+         
         </Modal.Body>
         <Modal.Footer>
           <Button variant="secondary" onClick={handleCloseModifyModal}>

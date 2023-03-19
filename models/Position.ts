@@ -12,4 +12,5 @@ export interface Position {
     sellDate?: Date;
     sellTag?: string;
     sellCost?: number;
+    adjustedStopLoss?: number;
   }

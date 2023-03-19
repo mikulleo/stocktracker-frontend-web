@@ -1,21 +1,40 @@
 import React, { useState, useEffect } from 'react';
-import { Container, Table } from 'react-bootstrap';
+import { Container, Table, Button } from 'react-bootstrap';
 import { useTable, useSortBy, useFilters } from "react-table";
 import { Position } from '../../models/Position';
 import './Positions.css';
 
+const MAX_DIGITS = 2;
+
 const OpenPositions: React.FC = () => {
-  const [openPositions, setOpenPositions] = useState([]);
+    const [openPositions, setOpenPositions] = useState<any[]>([]);
 
   useEffect(() => {
     fetchOpenPositions();
   }, []);
-
-  const fetchOpenPositions = async () => {
-    const response = await fetch('http://localhost:3001/positions/open');
+  
+  /*const fetchOpenPositions = async (updatePrices = false) => {
+    const response = await fetch(`http://localhost:3001/positions/open?updatePrices=${updatePrices}`);
     const data = await response.json();
-    setOpenPositions(data);
-  };
+    if (data.positions) {
+      setOpenPositions(data.positions);
+    } else {
+      setOpenPositions(data);
+    }
+  };*/
+
+  const fetchOpenPositions = async (updatePrices = false) => {
+    const response = await fetch(`http://localhost:3001/positions/open?updatePrices=${updatePrices}`);
+    const data = await response.json();
+    const positions = data.positions ? data.positions : data;
+    setOpenPositions(positions);
+    return positions;
+  };  
+  
+  const updateCurrentPrices = async () => {
+    const updatedPositions = await fetchOpenPositions(true);
+    setOpenPositions(updatedPositions);
+  };  
 
   const data = React.useMemo(() => openPositions, [openPositions]);
 
@@ -61,7 +80,8 @@ const OpenPositions: React.FC = () => {
       {
         Header: 'Current Price',
         accessor: 'currentPrice',
-      },
+        Cell: ({ value }) => (value ? value.toFixed(MAX_DIGITS) : '-'),
+      },      
       {
         Header: 'Stop Loss',
         accessor: 'stopLoss',
@@ -88,7 +108,28 @@ const OpenPositions: React.FC = () => {
       },
       {
         Header: 'Max Potential Drawdown',
-        accessor: 'maxPotentialDrawdown',
+        accessor: 'maxDrawdown',
+        Cell: ({ value }) => {
+          return typeof value === "number"
+            ? value.toFixed(MAX_DIGITS)
+            : value.toString();
+        },
+      },
+      {
+        Header: 'Gain/Loss',
+        accessor: 'gainLoss',
+        Cell: ({ value }) => {
+          return typeof value === "number"
+            ? value.toFixed(MAX_DIGITS)
+            : value.toString();
+        },
+      },
+      {
+        Header: 'Gain/Loss Percentage',
+        accessor: 'gainLossPercentage',
+        Cell: ({ value }) => {
+          return `${Number(value).toFixed(MAX_DIGITS)}%`;
+        },
       },
     ],
     []
@@ -145,6 +186,9 @@ const OpenPositions: React.FC = () => {
           })}
         </tbody>
       </Table>
+    <Button variant="primary" onClick={updateCurrentPrices}>
+        Update Prices
+    </Button>
     </Container>
   );
 };
