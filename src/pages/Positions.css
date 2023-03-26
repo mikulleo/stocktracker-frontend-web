@@ -73,3 +73,48 @@
   min-width: 160px;
 }
 
+.adjusted-tag {
+  background-color: #28a745;
+  border: none;
+  color: white;
+  padding: 2px 6px;
+  text-align: center;
+  text-decoration: none;
+  display: inline-block;
+  font-size: 12px;
+  margin: 2px 2px;
+  cursor: pointer;
+  border-radius: 4px;
+}
+
+.original-tag {
+  background-color: #6c757d;
+  border: none;
+  color: white;
+  padding: 2px 6px;
+  text-align: center;
+  text-decoration: none;
+  display: inline-block;
+  font-size: 12px;
+  margin: 2px 2px;
+  cursor: pointer;
+  border-radius: 4px;
+}
+
+.value-container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.positive-value {
+  color: #28a745;
+  background-color: #e1f5df;
+  font-weight: bold;
+}
+
+.negative-value {
+  color: #dc3545;
+  background-color: #f8d7da;
+  font-weight: bold;
+}

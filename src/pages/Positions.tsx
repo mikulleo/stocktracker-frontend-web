@@ -19,6 +19,7 @@ const Positions: React.FC = () => {
   const sellDateRef = useRef<any>();
   const sellTagRef = useRef<any>();
   const sellNoteRef = useRef<any>();
+  const commissionRef = useRef<any>();
   const [showAlert, setShowAlert] = useState(false);
   const [showModifyModal, setShowModifyModal] = useState(false);
   const modifyFormRef = useRef<any>();
@@ -65,6 +66,7 @@ const Positions: React.FC = () => {
     const sellDate = sellDateRef?.current?.value;
     const sellTag = sellTagRef?.current?.value;
     const sellNote = sellNoteRef?.current?.value;
+    const commission = parseFloat(commissionRef?.current?.value || "0");
   
     if (selectedOrder) {
       const response = await fetch(`http://localhost:3001/positions/${selectedOrder._id}/close`, {
@@ -77,6 +79,7 @@ const Positions: React.FC = () => {
           sellDate,
           sellTag,
           sellNote,
+          commission,
         }),
       });
   
@@ -153,19 +156,6 @@ const Positions: React.FC = () => {
       accessor: 'stockSymbol',
     },
     {
-      Header: "Normalized Gain/Loss %",
-      accessor: "normalizedGainLossPercentage",
-      Cell: ({ row }) => {
-        const { buyCost, fullPositionSize, gainLossPercentage } = row.original;
-        const percentage = normalizedGainLossPercentage(buyCost, fullPositionSize, gainLossPercentage);
-        if (percentage !== null) {
-          return `${percentage.toFixed(2)}%`;
-        } else {
-          return '-';
-        }
-      },
-    },
-    {
       Header: 'Buy Price',
       accessor: 'buyPrice',
     },
@@ -184,10 +174,6 @@ const Positions: React.FC = () => {
       Cell: ({ value }) => new Date(value).toLocaleDateString(),
     },    
     {
-      Header: 'Tags',
-      accessor: 'buyTag',
-    },
-    {
       Header: 'Sell Price',
       accessor: 'sellPrice',
       Cell: ({ value }) => (value || '-'),
@@ -200,7 +186,7 @@ const Positions: React.FC = () => {
     {
       Header: 'Sell Cost',
       accessor: 'sellCost',
-      Cell: ({ value }) => (value || '-'),
+      Cell: ({ value }) => (value ? value.toFixed(MAX_DIGITS) : '-'),
     },
     {
       Header: 'Sell Tag',
@@ -230,7 +216,36 @@ const Positions: React.FC = () => {
       Header: "Status",
       accessor: "status",
       Cell: ({ value }) => <span className={value === "Open" ? "open" : "closed"}>{value}</span>,
-    },    
+    },   
+    {
+      Header: "Normalized Gain/Loss %",
+      accessor: "normalizedGainLossPercentage",
+      Cell: ({ row }) => {
+        const { buyCost, fullPositionSize, gainLossPercentage } = row.original;
+        const percentage = normalizedGainLossPercentage(buyCost, fullPositionSize, gainLossPercentage);
+        if (percentage !== null) {
+          return `${percentage.toFixed(2)}%`;
+        } else {
+          return '-';
+        }
+      },
+    },
+    {
+      Header: 'Gain/Loss Percentage',
+      accessor: 'gainLossPercentage',
+      Cell: ({ value }) => {
+        return `${Number(value).toFixed(MAX_DIGITS)}%`;
+      },
+    },
+    {
+      Header: 'Gain/Loss',
+      accessor: 'gainLoss',
+      Cell: ({ value }) => {
+        return typeof value === "number"
+          ? value.toFixed(MAX_DIGITS)
+          : value.toString();
+      },
+    }, 
   ],
   []
 );
@@ -313,6 +328,10 @@ return (
               <Form.Label>Sell Note</Form.Label>
               <Form.Control type="text" placeholder="Enter a custom note" ref={sellNoteRef} />
             </Form.Group>
+            <Form.Group controlId="commission">
+              <Form.Label>Commission</Form.Label>
+              <Form.Control type="number" step="0.01" ref={commissionRef} />
+            </Form.Group>
           </Form>
         </Modal.Body>
         <Modal.Footer>
@@ -394,6 +413,10 @@ return (
                 <option value="tag2">Tag 2</option>
                 <option value="tag3">Tag 3</option>
               </Form.Control>
+            </Form.Group>
+            <Form.Group controlId="commission">
+              <Form.Label>Commission</Form.Label>
+              <Form.Control type="number" step="0.01" ref={commissionRef} />
             </Form.Group>
             <Form.Group controlId="adjustedStopLoss">
               <Form.Label>Adjusted Stop Loss</Form.Label>

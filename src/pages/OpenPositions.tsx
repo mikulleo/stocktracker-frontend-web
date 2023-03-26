@@ -1,30 +1,101 @@
-import React, { useState, useEffect } from 'react';
-import { Container, Table, Button } from 'react-bootstrap';
+import React, { useState, useEffect } from "react";
+import { Container, Table, Button, Modal } from "react-bootstrap";
 import { useTable, useSortBy, useFilters } from "react-table";
-import { Position } from '../../models/Position';
-import './Positions.css';
+import { Position } from "../../models/Position";
+import "../App.css";
+import "./Positions.css";
+import "../index.css";
 
 const MAX_DIGITS = 2;
 
+interface PositionWithAdjustment extends Position {
+  isAdjusted: boolean;
+}
+
+type ModalContentState = {
+  stopLoss: number | null;
+  initialRisk: number | null;
+  isAdjusted: boolean | null;
+  rowData: Partial<Position> & {
+    initialRisk: number | null;
+    adjustedRisk: number | null;
+    isAdjusted: boolean | null;
+  } | null;
+};
+
 const OpenPositions: React.FC = () => {
-    const [openPositions, setOpenPositions] = useState<any[]>([]);
+  const [openPositions, setOpenPositions] = useState<PositionWithAdjustment[]>([]);
+  const [fetchedPositions, setFetchedPositions] = useState<PositionWithAdjustment[]>([]);
+
+  const [showModal, setShowModal] = useState(false);
+  const [modalContent, setModalContent] = useState<ModalContentState>({
+    stopLoss: null,
+    initialRisk: null,
+    isAdjusted: null,
+    rowData: null,
+  });
 
   useEffect(() => {
-    fetchOpenPositions();
-  }, []);
-  
-  const fetchOpenPositions = async (updatePrices = false) => {
-    const response = await fetch(`http://localhost:3001/positions/open?updatePrices=${updatePrices}`);
-    const data = await response.json();
-    const positions = data.positions ? data.positions : data;
-    setOpenPositions(positions);
-    return positions;
+    console.log("First use effect - Open Positions:", openPositions);
+    console.log("First use effect - Previous Open Positions:", openPositions);
+  }, [openPositions]);
+
+  const toggleStopLossClick = (rowId) => {
+    setOpenPositions((prevState) => {
+      const updatedPositions = prevState.map((position) => {
+        if (position._id === rowId) {
+          const isAdjusted = !position.isAdjusted;
+          return { ...position, isAdjusted };
+        }
+        return position;
+      });
+      return updatedPositions;
+    });
   };  
-  
+
+  const fetchOpenPositions = async (updatePrices = false) => {
+    const response = await fetch(
+      `http://localhost:3001/positions/open?updatePrices=${updatePrices}`
+    );
+    const data = await response.json();
+
+    if (!data || (Array.isArray(data) && data.length === 0)) {
+      console.error("No data received from the API.");
+      return;
+    }
+
+    const positions = data.positions ? data.positions : data;
+    const positionsWithAdjustment = positions.map((position: Position) => ({
+      ...position,
+      isAdjusted:
+        position.adjustedStopLoss !== null &&
+        position.adjustedStopLoss !== undefined &&
+        position.adjustedStopLoss !== 0,
+    }));
+    console.log("Fetched positions - positionsWithAdjustment:", positionsWithAdjustment);
+    return positionsWithAdjustment;
+  };
+
+  useEffect(() => {
+    async function fetchData() {
+      const fetchedPositions = await fetchOpenPositions(true);
+      console.log("Second use effect - Open Positions:", openPositions);
+      console.log("Second use effect - Fetched Positions:", fetchedPositions);
+      setFetchedPositions([...fetchedPositions]);
+    }
+
+    fetchData();
+  }, []);
+
+  useEffect(() => {
+    if (fetchedPositions.length > 0) {
+      setOpenPositions(fetchedPositions);
+    }
+  }, [fetchedPositions]);
+
   const updateCurrentPrices = async () => {
     const updatedPositions = await fetchOpenPositions(true);
-    setOpenPositions(updatedPositions);
-  };  
+  };
 
   const normalizedGainLossPercentage = (buyCost, fullPositionSize, gainLossPercentage) => {
     if (fullPositionSize !== null && fullPositionSize !== 0) {
@@ -79,14 +150,49 @@ const OpenPositions: React.FC = () => {
         Header: 'Current Price',
         accessor: 'currentPrice',
         Cell: ({ value }) => (value ? value.toFixed(MAX_DIGITS) : '-'),
-      },      
-      {
-        Header: 'Stop Loss',
-        accessor: 'stopLoss',
       },
       {
-        Header: 'Adjusted Stop Loss',
-        accessor: 'adjustedStopLoss',
+        Header: 'Stop Loss',
+        accessor: (row: PositionWithAdjustment) => {
+          return row.isAdjusted && row.adjustedStopLoss
+            ? row.adjustedStopLoss
+            : row.stopLoss;
+        },
+        Cell: ({ row }) => {
+          const { initialRisk, stopLoss, adjustedStopLoss, adjustedRisk } = row.original;
+          const isAdjusted = row.original.isAdjusted;
+          const value = isAdjusted ? adjustedStopLoss : stopLoss;
+          const buttonClass = isAdjusted ? "adjusted-tag" : "original-tag";
+          return (
+            <div className="value-container">
+              {value.toFixed(MAX_DIGITS)}{" "}
+              {adjustedStopLoss && (
+                <button
+                className={buttonClass}
+                  onClick={() => toggleStopLossClick(row.original._id)}
+                >
+                  {isAdjusted ? "A" : "O"}
+                </button>
+              )}
+            </div>
+          );
+        },        
+      },
+      {
+        Header: 'Risk',
+        accessor: (row: PositionWithAdjustment) => {
+          return row.isAdjusted ? row.adjustedRisk : row.initialRisk;
+        },
+        Cell: ({ row }) => {
+          const { initialRisk, stopLoss, adjustedStopLoss, adjustedRisk } = row.original;
+          const isAdjusted = row.original.isAdjusted;
+          const value = isAdjusted ? adjustedRisk : initialRisk;
+          return (
+            <>
+                {`${Number(value).toFixed(MAX_DIGITS)}%`}
+            </>
+          );
+        },
       },
       {
         Header: 'Tags',
@@ -178,40 +284,39 @@ const OpenPositions: React.FC = () => {
             <tr {...headerGroup.getHeaderGroupProps()}>
               {headerGroup.headers.map((column) => (
                 <th
-                {...column.getHeaderProps({
-                  onClick: (e) => {
-                    if (e.target.tagName !== "INPUT") {
-                      column.toggleSortBy();
-                    }
-                  },
-                })}
-              >
-                {column.render("Header")}
-                <div>{column.canFilter ? column.render("Filter") : null}</div>
-              </th>
+                  {...column.getHeaderProps({
+                    onClick: (e) => {
+                      if (e.target.tagName !== "INPUT") {
+                        column.toggleSortBy();
+                      }
+                    },
+                  })}
+                >
+                  {column.render("Header")}
+                  <div>{column.canFilter ? column.render("Filter") : null}</div>
+                </th>
               ))}
             </tr>
           ))}
         </thead>
         <tbody {...getTableBodyProps()}>
-          {rows.map(row => {
+          {rows.map((row) => {
             prepareRow(row);
             return (
-              <tr {...row.getRowProps()}>
-                {row.cells.map(cell => {
-                  return <td {...cell.getCellProps()}>{cell.render('Cell')}</td>;
+              <tr {...row.getRowProps()} key={row.original._id}>
+                {row.cells.map((cell) => {
+                  return <td {...cell.getCellProps()}>{cell.render("Cell")}</td>;
                 })}
               </tr>
             );
           })}
         </tbody>
       </Table>
-    <Button variant="primary" onClick={updateCurrentPrices}>
+      <Button variant="primary" onClick={updateCurrentPrices}>
         Update Prices
-    </Button>
+      </Button>
     </Container>
   );
 };
 
 export default OpenPositions;
-

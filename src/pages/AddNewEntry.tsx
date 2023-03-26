@@ -13,6 +13,7 @@ interface FormData {
   stopLoss: string;
   buyTag: string;
   buyNote: string;
+  commission: string;
 }
 
 const AddNewEntry: React.FC = () => {
@@ -24,6 +25,7 @@ const AddNewEntry: React.FC = () => {
     stopLoss: '',
     buyTag: '',
     buyNote: '',
+    commission: '',
   });
   const [currentFullPositionSize, setCurrentFullPositionSize] = useState<number>(0);
   
@@ -55,6 +57,7 @@ const AddNewEntry: React.FC = () => {
         stopLoss: formData.stopLoss,
         buyTag: formData.buyTag,
         buyNote: formData.buyNote,
+        commission: formData.commission,
         fullPositionSize: currentFullPositionSize,
       }),
     });
@@ -72,6 +75,7 @@ const AddNewEntry: React.FC = () => {
         stopLoss: '',
         buyTag: '',
         buyNote: '',
+        commission: '',
       });
     } else {
       console.error('Error adding buy order');
@@ -167,6 +171,18 @@ const AddNewEntry: React.FC = () => {
                 placeholder="Enter a custom note"
                 name="buyNote"
                 value={formData.buyNote}
+                onChange={handleChange}
+              />
+            </Form.Group>
+          </Col>
+          <Col>
+            <Form.Group controlId="commission">
+              <Form.Label>Commission</Form.Label>
+              <Form.Control
+                type="text"
+                placeholder=""
+                name="commission"
+                value={formData.commission}
                 onChange={handleChange}
               />
             </Form.Group>

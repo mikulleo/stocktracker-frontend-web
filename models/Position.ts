@@ -13,4 +13,7 @@ export interface Position {
     sellTag?: string;
     sellCost?: number;
     adjustedStopLoss?: number;
+    commission: string;
+    initialRisk: number;
+    adjustedRisk: number;
   }
