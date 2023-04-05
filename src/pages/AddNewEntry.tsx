@@ -6,6 +6,7 @@ import 'react-toastify/dist/ReactToastify.css';
 <ToastContainer />
 
 interface FormData {
+  positionType: string;
   stockSymbol: string;
   shares: string;
   buyPrice: string;
@@ -18,6 +19,7 @@ interface FormData {
 
 const AddNewEntry: React.FC = () => {
   const [formData, setFormData] = useState<FormData>({
+    positionType: 'long',
     stockSymbol: '',
     shares: '',
     buyPrice: '',
@@ -28,6 +30,7 @@ const AddNewEntry: React.FC = () => {
     commission: '',
   });
   const [currentFullPositionSize, setCurrentFullPositionSize] = useState<number>(0);
+  const [positionType, setPositionType] = useState('Long');
   
   const handleChange = (event: React.ChangeEvent<any>) => {
     const { name, value } = event.target;
@@ -50,6 +53,7 @@ const AddNewEntry: React.FC = () => {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
+        positionType: formData.positionType,
         stockSymbol: formData.stockSymbol,
         shares: formData.shares,
         buyPrice: formData.buyPrice,
@@ -68,6 +72,7 @@ const AddNewEntry: React.FC = () => {
       toast.success('Buy order added successfully!');
       // Clear the form after a successful submission
       setFormData({
+        positionType: '',
         stockSymbol: '',
         shares: '',
         buyPrice: '',
@@ -86,6 +91,20 @@ const AddNewEntry: React.FC = () => {
     <Container className="app-container">
       <Form onSubmit={handleSubmit}>
         <Row>
+          <Col>
+          <Form.Group controlId="positionType">
+          <Form.Label>Position Type</Form.Label>
+          <Form.Control
+            as="select"
+            name="positionType"
+            value={formData.positionType}
+            onChange={handleChange}
+          >
+            <option value="long">Long</option>
+            <option value="short">Short</option>
+          </Form.Control>
+        </Form.Group>
+          </Col>
           <Col>
             <Form.Group controlId="stockSymbol">
               <Form.Label>Stock Symbol</Form.Label>

@@ -16,4 +16,5 @@ export interface Position {
     commission: string;
     initialRisk: number;
     adjustedRisk: number;
+    positionType: 'long' | 'short';
   }

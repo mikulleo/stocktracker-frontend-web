@@ -418,6 +418,15 @@ return (
               <Form.Label>Commission</Form.Label>
               <Form.Control type="number" step="0.01" ref={commissionRef} />
             </Form.Group>
+            <Form.Group controlId="stopLoss">
+              <Form.Label> Stop Loss</Form.Label>
+              <Form.Control
+                type="number"
+                step="0.01"
+                defaultValue={selectedOrder?.stopLoss || ""}
+                name="stopLoss"
+              />
+            </Form.Group>
             <Form.Group controlId="adjustedStopLoss">
               <Form.Label>Adjusted Stop Loss</Form.Label>
               <Form.Control

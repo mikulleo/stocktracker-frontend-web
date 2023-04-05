@@ -1,10 +1,15 @@
+// Open Positions Page
 import React, { useState, useEffect } from "react";
 import { Container, Table, Button, Modal } from "react-bootstrap";
 import { useTable, useSortBy, useFilters } from "react-table";
 import { Position } from "../../models/Position";
+import { ToastContainer, toast } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
+import * as XLSX from 'xlsx';
 import "../App.css";
 import "./Positions.css";
 import "../index.css";
+
 
 const MAX_DIGITS = 2;
 
@@ -35,10 +40,7 @@ const OpenPositions: React.FC = () => {
     rowData: null,
   });
 
-  useEffect(() => {
-    console.log("First use effect - Open Positions:", openPositions);
-    console.log("First use effect - Previous Open Positions:", openPositions);
-  }, [openPositions]);
+  
 
   const toggleStopLossClick = (rowId) => {
     setOpenPositions((prevState) => {
@@ -72,15 +74,12 @@ const OpenPositions: React.FC = () => {
         position.adjustedStopLoss !== undefined &&
         position.adjustedStopLoss !== 0,
     }));
-    console.log("Fetched positions - positionsWithAdjustment:", positionsWithAdjustment);
     return positionsWithAdjustment;
   };
 
   useEffect(() => {
     async function fetchData() {
       const fetchedPositions = await fetchOpenPositions(true);
-      console.log("Second use effect - Open Positions:", openPositions);
-      console.log("Second use effect - Fetched Positions:", fetchedPositions);
       setFetchedPositions([...fetchedPositions]);
     }
 
@@ -102,6 +101,76 @@ const OpenPositions: React.FC = () => {
       return (buyCost / fullPositionSize) * gainLossPercentage;
     }
     return null;
+  };
+
+  const [importedOpenPositions, setImportedOpenPositions] = useState([]);
+
+  const processOpenPositions = async (openPositions) => {
+    // Remove the header row from the data
+    const dataWithoutHeader = openPositions.slice(1);
+    let successCount = 0;
+    let errorCount = 0;
+  
+    for (const entry of dataWithoutHeader) {
+      // Convert the entry to an object to send to the backend
+      const position = {
+        positionType: entry[5], // Assuming the 'Position Type' is at index 5
+        stockSymbol: entry[0],
+        shares: entry[2],
+        buyPrice: entry[1],
+        buyDate: entry[3],
+        stopLoss: entry[4],
+        buyTag: entry[7],
+        buyNote: entry[6],
+        commission: entry[8],
+        fullPositionSize: entry[9],
+      };
+  
+      // Send the entry to the backend
+      const response = await fetch('http://localhost:3001/positions/add', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(position),
+      });
+
+      if (response.ok) {
+        successCount++;
+      } else {
+        errorCount++;
+      }
+    }
+
+    if (successCount > 0) {
+      toast.success(`${successCount} position(s) imported successfully.`);
+    }
+
+    if (errorCount > 0) {
+      toast.error(`${errorCount} position(s) failed to import.`);
+    }
+  };
+  
+          
+  const handleFileUpload = (e) => {
+    const file = e.target.files[0];
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const data = event.target?.result || "";
+      const workbook = XLSX.read(data, { type: 'binary' });
+
+      const openPositionsWorksheet = workbook.Sheets['OpenPositions'];
+
+      if (openPositionsWorksheet) {
+    
+        const openPositionsData = XLSX.utils.sheet_to_json(openPositionsWorksheet, { header: 1 });
+          processOpenPositions(openPositionsData);
+      } else {
+        alert('Open Positions sheet not found.');
+      }
+    
+    };
+    reader.readAsBinaryString(file);
   };
 
   const data = React.useMemo(() => openPositions, [openPositions]);
@@ -315,7 +384,13 @@ const OpenPositions: React.FC = () => {
       <Button variant="primary" onClick={updateCurrentPrices}>
         Update Prices
       </Button>
+      <label className="btn btn-primary">
+        Import from Excel
+        <input type="file" onChange={handleFileUpload} style={{ display: 'none' }} />
+      </label>
+      <ToastContainer />
     </Container>
+    
   );
 };
 
