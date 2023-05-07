@@ -3,6 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { Container, Table } from 'react-bootstrap';
 import { useTable, useSortBy, useFilters } from "react-table";
 import { Position } from '../../models/Position';
+
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import * as XLSX from 'xlsx';
@@ -15,7 +16,11 @@ import '../index.css';
 
 const MAX_DIGITS = 2;
 
-const ClosedPositions: React.FC = () => {
+interface ClosedPositionsProps {
+  partialReductionsFilter?: Position["_id"];
+}
+
+const ClosedPositions: React.FC<ClosedPositionsProps> = ({ partialReductionsFilter }) => {
   const [closedPositions, setClosedPositions] = useState([]);
 
   useEffect(() => {
@@ -107,25 +112,28 @@ const ClosedPositions: React.FC = () => {
     reader.readAsBinaryString(file);
   };
 
-  const data = React.useMemo(() => closedPositions, [closedPositions]);
-
-  const DefaultColumnFilter = ({
-    column: { filterValue, setFilter },
-  }) => {
-    return (
-      <input
-        value={filterValue || ""}
-        onChange={(e) => {
-          setFilter(e.target.value || undefined);
-        }}
-        placeholder={``}
-        className="form-control"
-        style={{ fontSize: '12px', marginTop: '8px' }}
-      />
-    );
-  };
-
-  const columns = React.useMemo(
+  const data = React.useMemo(() => {
+    if (partialReductionsFilter) {
+      return closedPositions.filter((position) => position._id === partialReductionsFilter);
+    }
+      return closedPositions;
+    }, [closedPositions, partialReductionsFilter]);
+    
+    const DefaultColumnFilter = ({
+        column: { filterValue, setFilter },
+      }) => {
+      return (
+      <input value={filterValue || ""} onChange={(e) => {
+        setFilter(e.target.value || undefined);
+      }}
+      placeholder={``}
+      className="form-control"
+      style={{ fontSize: '12px', marginTop: '8px' }}
+    />
+      );
+    };
+    
+    const columns = React.useMemo(
     () => [
       {
         Header: 'Symbol',
@@ -301,8 +309,8 @@ const ClosedPositions: React.FC = () => {
           <ToastContainer />
         </Container>
       );
-      
+    
       };
-      
+
       export default ClosedPositions;
       

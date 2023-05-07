@@ -1,3 +1,4 @@
+// Positions page
 import React, { useState, useEffect, useRef } from 'react';
 import { Container, Table, Button, Modal, Form } from 'react-bootstrap';
 import { useTable, useSortBy, useFilters } from "react-table";
@@ -23,6 +24,9 @@ const Positions: React.FC = () => {
   const [showAlert, setShowAlert] = useState(false);
   const [showModifyModal, setShowModifyModal] = useState(false);
   const modifyFormRef = useRef<any>();
+  const [showReduceModal, setShowReduceModal] = useState(false);
+  const reduceSharesRef = useRef<any>();
+  const sharesToCloseRef = useRef<any>();
 
   useEffect(() => {
     fetchBuyOrders();
@@ -60,6 +64,13 @@ const Positions: React.FC = () => {
   
   const handleCloseModifyModal = () => setShowModifyModal(false);
 
+  /*const handleShowReduceModal = (order) => {
+    setSelectedOrder(order);
+    setShowReduceModal(true);
+  };*/
+
+  const handleCloseReduceModal = () => setShowReduceModal(false);
+
   const handleSaveChanges = async () => {
     // You should validate the form data before sending it to the backend
     const sellPrice = parseFloat(sellPriceRef?.current?.value || "0");
@@ -67,6 +78,7 @@ const Positions: React.FC = () => {
     const sellTag = sellTagRef?.current?.value;
     const sellNote = sellNoteRef?.current?.value;
     const commission = parseFloat(commissionRef?.current?.value || "0");
+    const sharesToClose = parseFloat(sharesToCloseRef?.current?.value || "0");
   
     if (selectedOrder) {
       const response = await fetch(`http://localhost:3001/positions/${selectedOrder._id}/close`, {
@@ -75,6 +87,7 @@ const Positions: React.FC = () => {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
+          sharesToClose,
           sellPrice,
           sellDate,
           sellTag,
@@ -101,35 +114,69 @@ const Positions: React.FC = () => {
   };
 
   const handleModifyChanges = async () => {
-    // You should validate the form data before sending it to the backend
-    const formData = new FormData(modifyFormRef.current);
-  
-    if (selectedOrder) {
-  
-      const response = await fetch(`http://localhost:3001/positions/${selectedOrder._id}/modify`, {
-        method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(Object.fromEntries(formData)),
-      });
-  
+      // You should validate the form data before sending it to the backend
+      const formData = new FormData(modifyFormRef.current);
+    
+      if (selectedOrder) {
+    
+        const response = await fetch(`http://localhost:3001/positions/${selectedOrder._id}/modify`, {
+          method: 'PATCH',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(Object.fromEntries(formData)),
+        });
+    
+        if (response.ok) {
+          const data = await response.json();
+          console.log('Position modified:', data);
+          toast.success('Position modified successfully!');
+          setSelectedOrder(null);
+          handleCloseModifyModal();
+          // Refresh the positions list
+          fetchBuyOrders();
+        } else {
+          console.error('Error modifying position');
+          toast.error('Error modifying position');
+        }
+      } else {
+        console.error('No position selected');
+      }
+    };  
+
+    /*const handleReducePosition = async () => {
+    const reduceShares = parseInt(reduceSharesRef?.current?.value || "0");
+
+    if (selectedOrder && reduceShares > 0) {
+      const response = await fetch(
+        `http://localhost:3001/positions/${selectedOrder._id}/reduce`,
+        {
+          method: "PATCH",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            reduceShares,
+          }),
+        }
+      );
+
       if (response.ok) {
         const data = await response.json();
-        console.log('Position modified:', data);
-        toast.success('Position modified successfully!');
+        console.log("Position reduced:", data);
+        toast.success("Position reduced successfully!");
         setSelectedOrder(null);
-        handleCloseModifyModal();
+        handleCloseReduceModal();
         // Refresh the positions list
         fetchBuyOrders();
       } else {
-        console.error('Error modifying position');
-        toast.error('Error modifying position');
+        console.error("Error reducing position");
+        toast.error("Error reducing position");
       }
     } else {
-      console.error('No position selected');
+      console.error("No position selected or invalid number of shares");
     }
-  };  
+  };*/
   
   const data = React.useMemo(() => buyOrders, [buyOrders]);
 
@@ -197,16 +244,10 @@ const Positions: React.FC = () => {
       accessor: '_id',
       Cell: ({ row }) => (
         <td className="action-buttons">
-          <Button
-            variant="warning"
-            onClick={() => handleShowModal(row.original)}
-          >
-            Close
+          <Button variant="warning" onClick={() => handleShowModal(row.original)} >
+            Close or Reduce
           </Button>{" "}
-          <Button
-            variant="info"
-            onClick={() => handleShowModifyModal(row.original)}
-          >
+          <Button variant="info" onClick={() => handleShowModifyModal(row.original)} >
             Modify
           </Button>
         </td>
@@ -307,6 +348,10 @@ return (
         </Modal.Header>
         <Modal.Body>
           <Form>
+            <Form.Group controlId="sharesToClose">
+              <Form.Label>Shares to Close or Reduce</Form.Label>
+              <Form.Control type="number" step="1" min="1" ref={sharesToCloseRef} />
+            </Form.Group>
             <Form.Group controlId="sellPrice">
               <Form.Label>Sell Price</Form.Label>
               <Form.Control type="number" step="0.01" ref={sellPriceRef} />

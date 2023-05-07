@@ -1,3 +1,5 @@
+import { PartialReduction } from "./PartialReduction";
+
 export interface Position {
     _id: string;
     stockSymbol: string;
@@ -17,4 +19,5 @@ export interface Position {
     initialRisk: number;
     adjustedRisk: number;
     positionType: 'long' | 'short';
+    partialReductions?: PartialReduction[];
   }

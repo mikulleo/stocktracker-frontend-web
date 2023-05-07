@@ -3,21 +3,25 @@ import React, { useState, useEffect } from "react";
 import { Container, Table, Button, Modal } from "react-bootstrap";
 import { useTable, useSortBy, useFilters } from "react-table";
 import { Position } from "../../models/Position";
+import { PartialReduction } from "../../models/PartialReduction";
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import * as XLSX from 'xlsx';
 import "../App.css";
 import "./Positions.css";
 import "../index.css";
+import ClosedPositions from "./ClosedPositions";
 
 
 const MAX_DIGITS = 2;
 
 interface PositionWithAdjustment extends Position {
   isAdjusted: boolean;
+  hasPartialReductions: boolean;
+  partialReductions?: PartialReduction[];
 }
 
-type ModalContentState = {
+/*type ModalContentState = {
   stopLoss: number | null;
   initialRisk: number | null;
   isAdjusted: boolean | null;
@@ -26,7 +30,19 @@ type ModalContentState = {
     adjustedRisk: number | null;
     isAdjusted: boolean | null;
   } | null;
+};*/
+
+type ModalContentState = {
+  stopLoss: number | null;
+  initialRisk: number | null;
+  isAdjusted: boolean | null;
+  rowData: PositionWithAdjustment & {
+    initialRisk: number | null;
+    adjustedRisk: number | null;
+    isAdjusted: boolean | null;
+  } | null;
 };
+
 
 const OpenPositions: React.FC = () => {
   const [openPositions, setOpenPositions] = useState<PositionWithAdjustment[]>([]);
@@ -39,8 +55,8 @@ const OpenPositions: React.FC = () => {
     isAdjusted: null,
     rowData: null,
   });
+  const [showClosedPositionsModal, setShowClosedPositionsModal] = useState(false);
 
-  
 
   const toggleStopLossClick = (rowId) => {
     setOpenPositions((prevState) => {
@@ -52,6 +68,14 @@ const OpenPositions: React.FC = () => {
         return position;
       });
       return updatedPositions;
+    });
+  };  
+
+  const handlePartialReductionsClick = (position: PositionWithAdjustment) => {
+    setShowClosedPositionsModal(true);
+    setModalContent({
+      ...modalContent,
+      rowData: position,
     });
   };  
 
@@ -73,6 +97,7 @@ const OpenPositions: React.FC = () => {
         position.adjustedStopLoss !== null &&
         position.adjustedStopLoss !== undefined &&
         position.adjustedStopLoss !== 0,
+        hasPartialReductions: (position.partialReductions?.length ?? 0) > 0,
     }));
     return positionsWithAdjustment;
   };
@@ -193,6 +218,27 @@ const OpenPositions: React.FC = () => {
 
   const columns = React.useMemo(
     () => [
+      {
+        Header: "Partial Reductions",
+        id: "partialReductions",
+        Cell: ({ row }) => {
+          const hasPartialReductions = row.original.hasPartialReductions;
+      
+          if (hasPartialReductions) {
+            return (
+              <button
+                className="btn btn-info btn-sm"
+                onClick={() => handlePartialReductionsClick(row.original)}
+              >
+                {/* Replace with your desired icon */}
+                <i className="fas fa-info-circle"></i>
+              </button>
+            );
+          } else {
+            return "-";
+          }
+        },
+      },      
       {
         Header: 'Symbol',
         accessor: 'stockSymbol',
@@ -345,24 +391,16 @@ const OpenPositions: React.FC = () => {
   );
 
   return (
-    <Container className="app-container">
+      <Container className="app-container">
       <h1> Open Positions</h1>
       <Table {...getTableProps()} striped bordered hover responsive className="text-center table">
         <thead>
           {headerGroups.map((headerGroup) => (
             <tr {...headerGroup.getHeaderGroupProps()}>
               {headerGroup.headers.map((column) => (
-                <th
-                  {...column.getHeaderProps({
-                    onClick: (e) => {
-                      if (e.target.tagName !== "INPUT") {
-                        column.toggleSortBy();
-                      }
-                    },
-                  })}
-                >
+                <th {...column.getHeaderProps(column.getSortByToggleProps())}>
                   {column.render("Header")}
-                  <div>{column.canFilter ? column.render("Filter") : null}</div>
+                  {column.isSorted ? (column.isSortedDesc ? " 🔽" : " 🔼") : ""}
                 </th>
               ))}
             </tr>
@@ -372,7 +410,7 @@ const OpenPositions: React.FC = () => {
           {rows.map((row) => {
             prepareRow(row);
             return (
-              <tr {...row.getRowProps()} key={row.original._id}>
+              <tr {...row.getRowProps()}>
                 {row.cells.map((cell) => {
                   return <td {...cell.getCellProps()}>{cell.render("Cell")}</td>;
                 })}
@@ -389,8 +427,8 @@ const OpenPositions: React.FC = () => {
         <input type="file" onChange={handleFileUpload} style={{ display: 'none' }} />
       </label>
       <ToastContainer />
+
     </Container>
-    
   );
 };
 
