@@ -10,7 +10,6 @@ import * as XLSX from 'xlsx';
 import "../App.css";
 import "./Positions.css";
 import "../index.css";
-import ClosedPositions from "./ClosedPositions";
 
 
 const MAX_DIGITS = 2;
@@ -72,7 +71,8 @@ const OpenPositions: React.FC = () => {
   };  
 
   const handlePartialReductionsClick = (position: PositionWithAdjustment) => {
-    setShowClosedPositionsModal(true);
+    //setShowClosedPositionsModal(true);
+    setShowModal(true);
     setModalContent({
       ...modalContent,
       rowData: position,
@@ -118,8 +118,8 @@ const OpenPositions: React.FC = () => {
   }, [fetchedPositions]);
 
   const updateCurrentPrices = async () => {
-    const updatedPositions = await fetchOpenPositions(true);
-  };
+    await fetchOpenPositions(true);
+  };  
 
   const normalizedGainLossPercentage = (buyCost, fullPositionSize, gainLossPercentage) => {
     if (fullPositionSize !== null && fullPositionSize !== 0) {
@@ -364,13 +364,13 @@ const OpenPositions: React.FC = () => {
         accessor: "normalizedGainLossPercentage",
         Cell: ({ row }) => {
           const { buyCost, fullPositionSize, gainLossPercentage } = row.original;
-          const percentage = normalizedGainLossPercentage(buyCost, fullPositionSize, gainLossPercentage);
-          if (percentage !== null) {
-            return `${percentage.toFixed(2)}%`;
-          } else {
-            return '-';
-          }
-        },
+          const percentage = normalizedGainLossPercentage(
+            buyCost,
+            fullPositionSize,
+            gainLossPercentage
+          );
+          return percentage !== null ? `${percentage.toFixed(2)}%` : "-";
+        }, 
       },
     ],
     []
@@ -427,6 +427,49 @@ const OpenPositions: React.FC = () => {
         <input type="file" onChange={handleFileUpload} style={{ display: 'none' }} />
       </label>
       <ToastContainer />
+
+      <Modal show={showModal} onHide={() => setShowModal(false)}>
+        <Modal.Header closeButton>
+          <Modal.Title>Partial Reductions</Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
+          {modalContent.rowData?.partialReductions?.length ? (
+            <Table striped bordered hover responsive className="text-center">
+              <thead>
+                <tr>
+                  <th>Shares</th>
+                  <th>Sell Price</th>
+                  <th>Sell Date</th>
+                  <th>Tag</th>
+                  <th>G/L %</th>
+                  <th>Norm G/L %</th>
+                  <th>Comm</th>
+                </tr>
+              </thead>
+              <tbody>
+                {modalContent.rowData.partialReductions.map((reduction, index) => (
+                  <tr key={index}>
+                    <td>{reduction.shares}</td>
+                    <td>{reduction.sellPrice}</td>
+                    <td>{reduction.sellDate}</td>
+                    <td>{reduction.sellTag}</td>
+                    <td>{reduction.gainLossPercentage}</td>
+                    <td>{reduction.normalizedGainLossPercentage}</td>
+                    <td>{reduction.commission}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </Table>
+          ) : (
+            <p>No partial reductions found.</p>
+          )}
+        </Modal.Body>
+        <Modal.Footer>
+          <Button variant="secondary" onClick={() => setShowModal(false)}>
+            Close
+          </Button>
+        </Modal.Footer>
+      </Modal>
 
     </Container>
   );

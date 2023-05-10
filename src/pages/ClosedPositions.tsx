@@ -21,7 +21,7 @@ interface ClosedPositionsProps {
 }
 
 const ClosedPositions: React.FC<ClosedPositionsProps> = ({ partialReductionsFilter }) => {
-  const [closedPositions, setClosedPositions] = useState([]);
+  const [closedPositions, setClosedPositions] = useState<Position[]>([]);
 
   useEffect(() => {
     fetchClosedPositions();
@@ -113,11 +113,12 @@ const ClosedPositions: React.FC<ClosedPositionsProps> = ({ partialReductionsFilt
   };
 
   const data = React.useMemo(() => {
-    if (partialReductionsFilter) {
-      return closedPositions.filter((position) => position._id === partialReductionsFilter);
-    }
+      if (partialReductionsFilter) {
+        return closedPositions.filter((position) => position.partialReductions && position.partialReductions.some((partialReduction) => partialReduction._id === partialReductionsFilter));
+      }
       return closedPositions;
     }, [closedPositions, partialReductionsFilter]);
+    
     
     const DefaultColumnFilter = ({
         column: { filterValue, setFilter },
@@ -145,11 +146,11 @@ const ClosedPositions: React.FC<ClosedPositionsProps> = ({ partialReductionsFilt
       },
       {
         Header: 'Shares',
-        accessor: 'shares',
+        accessor: 'initialShares',
       },
       {
         Header: 'Total Cost',
-        accessor: 'buyCost',
+        accessor: 'initialBuyCost',
         Cell: ({ value }) => (value ? value.toFixed(MAX_DIGITS) : '-'),
       },
       {
@@ -311,6 +312,6 @@ const ClosedPositions: React.FC<ClosedPositionsProps> = ({ partialReductionsFilt
       );
     
       };
-
+      
       export default ClosedPositions;
       

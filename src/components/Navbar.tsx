@@ -25,6 +25,9 @@ const Navbar: React.FC = () => {
             <Nav.Link as={Link} to="/closed-positions">
               Closed Positions
             </Nav.Link>
+            <Nav.Link as={Link} to="/stats">
+              Stats
+            </Nav.Link>
           </Nav>
           <Nav>
             <div className="nav-item">

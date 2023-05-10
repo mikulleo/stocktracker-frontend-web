@@ -7,6 +7,10 @@ export interface PartialReduction {
     sellTag: string;
     sellNote: string;
     position: string;
+    gainLossPercentage: number;
+    gainLoss: number;
+    normalizedGainLossPercentage: number;
+    commission: number;
     partialReductions?: PartialReduction[];
 }
     

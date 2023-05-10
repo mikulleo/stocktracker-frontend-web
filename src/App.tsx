@@ -7,6 +7,7 @@ import AddNewEntry from './pages/AddNewEntry';
 import Positions from './pages/Positions';
 import OpenPositions from './pages/OpenPositions';
 import ClosedPositions from './pages/ClosedPositions';
+import StatsPage from './pages/StatsPage';
 import Settings from './pages/Settings';
 
 import Navbar from './components/Navbar';
@@ -21,6 +22,7 @@ function App() {
           <Route path="/positions" element={<Positions />} />
           <Route path="/open-positions" element={<OpenPositions />} />
           <Route path="/closed-positions" element={<ClosedPositions />} />
+          <Route path="/stats" element={<StatsPage />} />
           <Route path="/settings" element={<Settings />} />
         </Routes>
       </div>

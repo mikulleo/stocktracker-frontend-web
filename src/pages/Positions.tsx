@@ -32,9 +32,15 @@ const Positions: React.FC = () => {
     fetchBuyOrders();
   }, []);
 
-  const normalizedGainLossPercentage = (buyCost, fullPositionSize, gainLossPercentage) => {
+  const normalizedGainLossPercentage = (status, initialShares, buyPrice, buyCost, fullPositionSize, gainLossPercentage) => {
     if (fullPositionSize !== null && fullPositionSize !== 0) {
-      return (buyCost / fullPositionSize) * gainLossPercentage;
+      if (status == "Closed") {
+        return ( ((initialShares * buyPrice) / fullPositionSize) * gainLossPercentage );
+      }
+      else {
+        return (buyCost / fullPositionSize) * gainLossPercentage;
+      }
+      
     }
     return null;
   };
@@ -211,8 +217,8 @@ const Positions: React.FC = () => {
       accessor: 'shares',
     },
     {
-      Header: 'Total Cost',
-      accessor: 'buyCost',
+      Header: 'Total Buy Cost',
+      accessor: 'initialBuyCost',
       Cell: ({ value }) => (value ? value.toFixed(MAX_DIGITS) : '-'),
     },
     {
@@ -262,8 +268,8 @@ const Positions: React.FC = () => {
       Header: "Normalized Gain/Loss %",
       accessor: "normalizedGainLossPercentage",
       Cell: ({ row }) => {
-        const { buyCost, fullPositionSize, gainLossPercentage } = row.original;
-        const percentage = normalizedGainLossPercentage(buyCost, fullPositionSize, gainLossPercentage);
+        const { status, initialShares, buyPrice, buyCost, fullPositionSize, gainLossPercentage } = row.original;
+        const percentage = normalizedGainLossPercentage(status, initialShares, buyPrice, buyCost, fullPositionSize, gainLossPercentage);
         if (percentage !== null) {
           return `${percentage.toFixed(2)}%`;
         } else {
@@ -411,7 +417,6 @@ return (
                 name="buyPrice"
               />
             </Form.Group>
-
             <Form.Group controlId="buyDate">
               <Form.Label>Buy Date</Form.Label>
               <Form.Control
@@ -420,7 +425,6 @@ return (
                 name="buyDate"
               />
             </Form.Group>
-
             <Form.Group controlId="buyTag">
               <Form.Label>Buy Tag</Form.Label>
               <Form.Control as="select" defaultValue={selectedOrder?.buyTag || ""} name="buyTag">
@@ -430,7 +434,6 @@ return (
                 <option value="tag3">Tag 3</option>
               </Form.Control>
             </Form.Group>
-
             <Form.Group controlId="sellPrice">
               <Form.Label>Sell Price</Form.Label>
               <Form.Control
@@ -440,7 +443,6 @@ return (
                 name="sellPrice"
               />
             </Form.Group>
-
             <Form.Group controlId="sellDate">
               <Form.Label>Sell Date</Form.Label>
               <Form.Control
@@ -449,7 +451,6 @@ return (
                 name="sellDate"
               />
             </Form.Group>
-
             <Form.Group controlId="sellTag">
               <Form.Label>Sell Tag</Form.Label>
               <Form.Control as="select" defaultValue={selectedOrder?.sellTag || ""} name="sellTag">
@@ -482,7 +483,6 @@ return (
               />
             </Form.Group>
           </Form>
-         
         </Modal.Body>
         <Modal.Footer>
           <Button variant="secondary" onClick={handleCloseModifyModal}>
